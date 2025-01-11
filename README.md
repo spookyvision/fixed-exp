@@ -16,7 +16,9 @@ fixed-exp = { git = "https://github.com/spookyvision/fixed-exp" }
 - changed `std::cmp` imports to `core::cmp` to facilitate `no_std` compatibility
 - `fixed` broke semver by adding `is_zero()`. Removed from this crate.
 - removed crash by added special handling to `powf` where the integer part of the exponent is zero
-- rewrote `powi` (which is used by `powf`) to not use a greedy accumulator that would very quickly overflow (e.g. for `2**9` in `I16F16`). The new algorithm is slower, so the old behavior is preserved under the `fast-powi` feature flag.
+- rewrote `powi` (which is used by `powf`) to not use a greedy accumulator that would 
+very quickly overflow (e.g. for `2**9` in `I16F16`). The new algorithm is slower, so
+the old behavior is preserved under the `fast-powi` feature flag.
 
 ## Usage
 
