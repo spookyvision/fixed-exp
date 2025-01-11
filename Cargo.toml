@@ -12,15 +12,15 @@
 
 [package]
 edition = "2018"
-name = "fixed-exp"
+name = "fixed-exp2"
 version = "0.2.0"
 authors = ["fixed-exp contributors"]
-description = "Exponentiation for fixed-point numbers"
+description = "Exponentiation for fixed-point numbers (forked, see README)"
 documentation = "https://docs.rs/fixed-exp/"
 readme = "README.md"
 keywords = ["numerics", "mathematics"]
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/toasteater/fixed-exp"
+repository = "https://github.com/spookyvision/fixed-exp"
 [dependencies.fixed]
 version = "1"
 
