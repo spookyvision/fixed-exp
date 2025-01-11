@@ -13,7 +13,7 @@
 [package]
 edition = "2018"
 name = "fixed-exp"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["fixed-exp contributors"]
 description = "Exponentiation for fixed-point numbers"
 documentation = "https://docs.rs/fixed-exp/"
