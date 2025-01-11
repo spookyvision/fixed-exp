@@ -11,11 +11,11 @@
 //! assert_eq!(I32F32::from_num(8.0), x.powf(I32F32::from_num(1.5)));
 //! ```
 
-use std::cmp::{Ord, Ordering};
+use core::cmp::{Ord, Ordering};
 
-use fixed::traits::Fixed;
-use fixed::types::extra::{LeEqU128, LeEqU16, LeEqU32, LeEqU64, LeEqU8};
 use fixed::{
+    traits::Fixed,
+    types::extra::{LeEqU128, LeEqU16, LeEqU32, LeEqU64, LeEqU8},
     FixedI128, FixedI16, FixedI32, FixedI64, FixedI8, FixedU128, FixedU16, FixedU32, FixedU64,
     FixedU8,
 };
@@ -72,9 +72,21 @@ pub trait FixedPowF: Fixed {
     fn powf(self, n: Self) -> Self;
 }
 
+#[cfg(not(feature = "fast-powi"))]
+fn powi_positive<T: Fixed>(x: T, n: i32) -> T {
+    assert!(n > 0, "exponent should be positive");
+    let mut res = x;
+    for _ in 1..n {
+        res = res * x;
+    }
+    res
+}
+
+// TODO: this overflows super quick. Might still be useful for special case scenarios,
+// but determining those = effort I don't feel like putting in
+#[cfg(feature = "fast-powi")]
 fn powi_positive<T: Fixed>(mut x: T, mut n: i32) -> T {
     assert!(n > 0, "exponent should be positive");
-
     let mut acc = x;
     n -= 1;
 
@@ -161,8 +173,12 @@ where
     T::Bits: PrimInt + std::fmt::Debug,
 {
     assert!(Helper::is_positive(n), "exponent should be positive");
-
-    let powi = powi_positive(x, n.int().to_num());
+    let ni = n.int().to_num();
+    let powi = if ni == 0 {
+        T::from_num(1)
+    } else {
+        powi_positive(x, ni)
+    };
     let frac = n.frac();
 
     if frac.is_zero() {
@@ -212,7 +228,9 @@ macro_rules! impl_fixed_pow {
                 match n.cmp(&zero) {
                     Ordering::Greater => powf_positive(self, n),
                     Ordering::Equal => Self::from_bits(1 << Frac::U32),
-                    Ordering::Less => powf_positive(Self::from_bits(1 << Frac::U32) / self, Helper::neg(n)),
+                    Ordering::Less => {
+                        powf_positive(Self::from_bits(1 << Frac::U32) / self, Helper::neg(n))
+                    },
                 }
             }
         }
@@ -234,7 +252,6 @@ impl_fixed_pow!(FixedU128, LeEqU128, U127);
 trait Helper {
     const NUM_BITS: u32;
     fn is_positive(self) -> bool;
-    fn is_zero(self) -> bool;
     fn is_one(self) -> bool;
     fn one() -> Self;
     fn neg(self) -> Self;
@@ -249,9 +266,6 @@ macro_rules! impl_sign_helper {
             const NUM_BITS: u32 = <Self as Fixed>::INT_NBITS + <Self as Fixed>::FRAC_NBITS;
             fn is_positive(self) -> bool {
                 $fixed::is_positive(self)
-            }
-            fn is_zero(self) -> bool {
-                self.to_bits() == 0
             }
             fn is_one(self) -> bool {
                 <LeEq<Frac, $le_eq_one>>::BOOL && self.to_bits() == 1 << Frac::U32
@@ -276,9 +290,6 @@ macro_rules! impl_sign_helper {
             const NUM_BITS: u32 = <Self as Fixed>::INT_NBITS + <Self as Fixed>::FRAC_NBITS;
             fn is_positive(self) -> bool {
                 self != Self::from_bits(0)
-            }
-            fn is_zero(self) -> bool {
-                self.to_bits() == 0
             }
             fn is_one(self) -> bool {
                 <LeEq<Frac, $le_eq_one>>::BOOL && self.to_bits() == 1 << Frac::U32
@@ -311,9 +322,9 @@ impl_sign_helper!(unsigned, FixedU128, LeEqU128, U127);
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     use fixed::types::{I1F31, I32F32, U0F32, U32F32};
+
+    use super::*;
 
     fn powi_positive_naive<T: Fixed>(x: T, n: i32) -> T {
         assert!(n > 0, "exponent should be positive");
